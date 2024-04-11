@@ -15,28 +15,29 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Iterate over all nodes and create a future for each minimumLedgerSlots RPC call
     for node in cluster_nodes.into_iter() {
-        if let Some(rpc_addr) = node.rpc {
-            let string = rpc_addr.to_string();
-            let future = async move {
-                match RpcClient::new(format!("http://{string}"))
-                    .minimum_ledger_slot()
-                    .await
-                {
-                    Ok(response) => {
-                        println!(
-                            "Node: {}, Minimum Ledger Slot: Value: {}",
-                            node.pubkey, response
-                        );
-                        response
-                    }
-                    Err(err) => {
-                        println!("Node: {}, Minimum Ledger Slot: Error: {}", node.pubkey, err);
-                        u64::MAX
-                    }
+        let rpc_addr = if let Some(rpc_addr) = node.rpc {
+            format!("http://{}", rpc_addr)
+        } else if let Some(gossip) = node.gossip {
+            format!("http://{}:8899", gossip.ip())
+        } else {
+            continue;
+        };
+
+        futures.push(async move {
+            match RpcClient::new(rpc_addr).minimum_ledger_slot().await {
+                Ok(response) => {
+                    println!(
+                        "Node: {}, Minimum Ledger Slot: Value: {}",
+                        node.pubkey, response
+                    );
+                    response
                 }
-            };
-            futures.push(future);
-        }
+                Err(err) => {
+                    println!("Node: {}, Minimum Ledger Slot: Error: {}", node.pubkey, err);
+                    u64::MAX
+                }
+            }
+        });
     }
 
     // Use join_all to await all futures concurrently
