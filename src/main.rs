@@ -42,9 +42,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                      "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Zero Value: {response}",
                                      rpc_addr
                                  );
-                                 u64::MAX
+                                 (u64::MAX, pubkey, rpc_addr)
                              } else {
-                                 response
+                                 (response, pubkey, rpc_addr)
                              }
                          }
                          Err(err) => {
@@ -52,13 +52,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                  "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Error: {err}",
                                  rpc_addr
                              );
-                             u64::MAX
+                             (u64::MAX, pubkey, rpc_addr)
                          }
                      }
                  }
                  Err(e) => {
                      println!("Node: {pubkey}, rpc_addr: {}, Health Check: Error: {e}", rpc_addr);
-                     u64::MAX
+                     (u64::MAX, pubkey, rpc_addr)
                  }
              }
         });
@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Use join_all to await all futures concurrently
     let cluster_min_ledger_slot = join_all(futures).await.into_iter().min().unwrap();
-    println!("Cluster Minimum Ledger Slot: {cluster_min_ledger_slot}");
+    println!("Cluster Minimum Ledger Slot: {cluster_min_ledger_slot:?}");
 
     Ok(())
 }
