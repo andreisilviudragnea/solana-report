@@ -26,10 +26,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         println!(
                             "Node: {}, Minimum Ledger Slot: Value: {}",
                             node.pubkey, response
-                        )
+                        );
+                        response
                     }
                     Err(err) => {
-                        println!("Node: {}, Minimum Ledger Slot: Error: {}", node.pubkey, err)
+                        println!("Node: {}, Minimum Ledger Slot: Error: {}", node.pubkey, err);
+                        u64::MAX
                     }
                 }
             };
@@ -38,7 +40,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Use join_all to await all futures concurrently
-    let _ = join_all(futures).await;
+    let cluster_min_ledger_slot = join_all(futures).await.into_iter().min().unwrap();
+    println!("Cluster Minimum Ledger Slot: {cluster_min_ledger_slot}");
 
     Ok(())
 }
