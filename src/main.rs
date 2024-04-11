@@ -2,6 +2,8 @@ use futures::future::join_all;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use std::error::Error;
 
+// solana gossip | grep 5Hj31m6TyTtFuDzoQ1oVSyreLBmFVncfKJLRwfVaKrQM
+// 46.4.25.173     | 5Hj31m6TyTtFuDzoQ1oVSyreLBmFVncfKJLRwfVaKrQM | 19999  | 18002 | none                  | 1.18.9  | 3469865029
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Initialize a new RPC client
