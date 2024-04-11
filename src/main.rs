@@ -26,27 +26,41 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         futures.push(async move {
-            match RpcClient::new(rpc_addr).minimum_ledger_slot().await {
-                Ok(response) => {
-                    println!(
-                        "Node: {}, Minimum Ledger Slot: Value: {}",
-                        node.pubkey, response
-                    );
-                    if response == 0 {
-                        println!(
-                            "Node: {}, Minimum Ledger Slot: Zero Value: {}",
-                            node.pubkey, response
-                        );
-                        u64::MAX
-                    } else {
-                        response
-                    }
-                }
-                Err(err) => {
-                    println!("Node: {}, Minimum Ledger Slot: Error: {}", node.pubkey, err);
-                    u64::MAX
-                }
-            }
+            let rpc_client = RpcClient::new(rpc_addr.to_string());
+            let pubkey = node.pubkey;
+
+             match rpc_client.get_health().await {
+                 Ok(()) => {
+                     match rpc_client.minimum_ledger_slot().await {
+                         Ok(response) => {
+                             println!(
+                                 "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Value: {response}",
+                                 rpc_addr
+                             );
+                             if response == 0 {
+                                 println!(
+                                     "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Zero Value: {response}",
+                                     rpc_addr
+                                 );
+                                 u64::MAX
+                             } else {
+                                 response
+                             }
+                         }
+                         Err(err) => {
+                             println!(
+                                 "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Error: {err}",
+                                 rpc_addr
+                             );
+                             u64::MAX
+                         }
+                     }
+                 }
+                 Err(e) => {
+                     println!("Node: {pubkey}, rpc_addr: {}, Health Check: Error: {e}", rpc_addr);
+                     u64::MAX
+                 }
+             }
         });
     }
 
