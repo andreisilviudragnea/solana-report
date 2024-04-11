@@ -30,7 +30,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         "Node: {}, Minimum Ledger Slot: Value: {}",
                         node.pubkey, response
                     );
-                    response
+                    if response == 0 {
+                        println!(
+                            "Node: {}, Minimum Ledger Slot: Zero Value: {}",
+                            node.pubkey, response
+                        );
+                        u64::MAX
+                    } else {
+                        response
+                    }
                 }
                 Err(err) => {
                     println!("Node: {}, Minimum Ledger Slot: Error: {}", node.pubkey, err);
