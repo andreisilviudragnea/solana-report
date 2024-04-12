@@ -1,5 +1,7 @@
 use crate::check_log_truncated::check_log_truncated;
 use serde::Deserialize;
+use solana_client::nonblocking::rpc_client::RpcClient;
+use std::sync::Arc;
 use web3::helpers::{serialize, CallFuture};
 use web3::transports::Http;
 use web3::{Transport, Web3};
@@ -30,15 +32,19 @@ async fn check_neon_tx() -> Result<(), Box<dyn std::error::Error>> {
     ))
     .await?;
 
+    let rpc_client = Arc::new(RpcClient::new(
+        "https://api.mainnet-beta.solana.com".to_string(),
+    ));
+
     let mut txs_with_truncated_logs_futures = Vec::new();
 
     for tx in &receipt.solana_transactions {
         let tx_hash = &tx.solana_transaction_hash;
-
+        let rpc_client = rpc_client.clone();
         txs_with_truncated_logs_futures.push(async move {
             (
                 tx_hash.clone(),
-                check_log_truncated("https://api.mainnet-beta.solana.com", tx_hash).await,
+                check_log_truncated(&rpc_client, tx_hash).await,
             )
         });
     }

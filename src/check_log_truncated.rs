@@ -8,23 +8,19 @@ use std::str::FromStr;
 
 #[tokio::test]
 async fn test_check_log_truncated() {
+    let rpc_client = RpcClient::new("https://api.mainnet-beta.solana.com".to_string());
     assert!(check_log_truncated(
-        "https://api.mainnet-beta.solana.com",
+        &rpc_client,
         "3WfjLkLWgAyiGXMG1ggCLbamYfV1eMyvTa7B9vxeRWkzV19QT2GxhtbKJHjYEz9u7QDKke4tjuRBZnjzNo4Cnqay"
     )
     .await
     .is_empty());
 }
 
-pub async fn check_log_truncated(entrypoint: &str, tx_hash: &str) -> Vec<(String, String)> {
+pub async fn check_log_truncated(rpc_client: &RpcClient, tx_hash: &str) -> Vec<(String, String)> {
     let mut futures = Vec::new();
 
-    for node in RpcClient::new(entrypoint.to_string())
-        .get_cluster_nodes()
-        .await
-        .unwrap()
-        .into_iter()
-    {
+    for node in rpc_client.get_cluster_nodes().await.unwrap().into_iter() {
         let rpc_addr = if let Some(rpc_addr) = node.rpc {
             format!("http://{}", rpc_addr)
         } else if let Some(gossip) = node.gossip {
