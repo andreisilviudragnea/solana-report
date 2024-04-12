@@ -33,48 +33,40 @@ pub async fn check_log_truncated(rpc_client: &RpcClient, tx_hash: &str) -> Vec<(
             let rpc_client = RpcClient::new(rpc_addr.to_string());
             let pubkey = node.pubkey;
 
-            match rpc_client.get_health().await {
-                Ok(()) => {
-                    match rpc_client.get_transaction_with_config(
-                        &Signature::from_str(tx_hash).unwrap(),
-                        RpcTransactionConfig {
-                            encoding: None,
-                            commitment: None,
-                            max_supported_transaction_version: Some(0),
-                        }
-                    ).await {
-                        Ok(response) => {
-                            let log_messages = response.transaction.meta.unwrap().log_messages;
-                            match log_messages {
-                                OptionSerializer::Some(log_messages) => {
-                                    let mut v = None;
-                                    for log_message in &log_messages {
-                                        if log_message.contains("Log truncated") {
-                                            println!(
-                                                "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
-                                                rpc_addr
-                                            );
-                                            v = Some((pubkey, rpc_addr));
-                                            break;
-                                        }
-                                    }
-                                    v
+            match rpc_client.get_transaction_with_config(
+                &Signature::from_str(tx_hash).unwrap(),
+                RpcTransactionConfig {
+                    encoding: None,
+                    commitment: None,
+                    max_supported_transaction_version: Some(0),
+                }
+            ).await {
+                Ok(response) => {
+                    let log_messages = response.transaction.meta.unwrap().log_messages;
+                    match log_messages {
+                        OptionSerializer::Some(log_messages) => {
+                            let mut v = None;
+                            for log_message in &log_messages {
+                                if log_message.contains("Log truncated") {
+                                    println!(
+                                        "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
+                                        rpc_addr
+                                    );
+                                    v = Some((pubkey, rpc_addr));
+                                    break;
                                 }
-                                OptionSerializer::None => None,
-                                OptionSerializer::Skip => None
                             }
+                            v
                         }
-                        Err(err) => {
-                            println!(
-                                "Node: {pubkey}, rpc_addr: {}, Log Messages Error: {err}",
-                                rpc_addr
-                            );
-                            None
-                        }
+                        OptionSerializer::None => None,
+                        OptionSerializer::Skip => None
                     }
                 }
-                Err(e) => {
-                    println!("Node: {pubkey}, rpc_addr: {}, Health Check: Error: {e}", rpc_addr);
+                Err(err) => {
+                    println!(
+                        "Node: {pubkey}, rpc_addr: {}, Log Messages Error: {err}",
+                        rpc_addr
+                    );
                     None
                 }
             }
