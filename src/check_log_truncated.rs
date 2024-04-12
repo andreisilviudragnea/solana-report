@@ -1,11 +1,12 @@
 use futures::future::join_all;
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_sdk::signature::Signature;
+use solana_transaction_status::UiTransactionEncoding;
 use std::error::Error;
+use std::str::FromStr;
 
-// solana gossip | grep 5Hj31m6TyTtFuDzoQ1oVSyreLBmFVncfKJLRwfVaKrQM
-// 46.4.25.173     | 5Hj31m6TyTtFuDzoQ1oVSyreLBmFVncfKJLRwfVaKrQM | 19999  | 18002 | none                  | 1.18.9  | 3469865029
 #[tokio::test]
-async fn minimum_ledger_slot() -> Result<(), Box<dyn Error>> {
+async fn check_log_truncated() -> Result<(), Box<dyn Error>> {
     let mut futures = Vec::new();
 
     for node in RpcClient::new("https://api.mainnet-beta.solana.com".to_string())
@@ -27,41 +28,33 @@ async fn minimum_ledger_slot() -> Result<(), Box<dyn Error>> {
 
             match rpc_client.get_health().await {
                 Ok(()) => {
-                    match rpc_client.minimum_ledger_slot().await {
+                    match rpc_client.get_transaction(
+                        &Signature::from_str("3WfjLkLWgAyiGXMG1ggCLbamYfV1eMyvTa7B9vxeRWkzV19QT2GxhtbKJHjYEz9u7QDKke4tjuRBZnjzNo4Cnqay").unwrap(),
+                        UiTransactionEncoding::JsonParsed
+                    ).await {
                         Ok(response) => {
+                            let log_messages = response.transaction.meta.unwrap().log_messages;
                             println!(
-                                "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Value: {response}",
+                                "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
                                 rpc_addr
                             );
-                            if response == 0 {
-                                println!(
-                                    "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Zero Value: {response}",
-                                    rpc_addr
-                                );
-                                (u64::MAX, pubkey, rpc_addr)
-                            } else {
-                                (response, pubkey, rpc_addr)
-                            }
                         }
                         Err(err) => {
                             println!(
-                                "Node: {pubkey}, rpc_addr: {}, Minimum Ledger Slot: Error: {err}",
+                                "Node: {pubkey}, rpc_addr: {}, Log Messages Error: {err}",
                                 rpc_addr
                             );
-                            (u64::MAX, pubkey, rpc_addr)
                         }
                     }
                 }
                 Err(e) => {
                     println!("Node: {pubkey}, rpc_addr: {}, Health Check: Error: {e}", rpc_addr);
-                    (u64::MAX, pubkey, rpc_addr)
                 }
             }
         });
     }
 
-    let cluster_min_ledger_slot = join_all(futures).await.into_iter().min().unwrap();
-    println!("Cluster Minimum Ledger Slot: {cluster_min_ledger_slot:?}");
+    let _ = join_all(futures).await.into_iter().min().unwrap();
 
     Ok(())
 }
