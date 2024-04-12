@@ -47,7 +47,7 @@ pub async fn check_log_truncated(rpc_client: &RpcClient, tx_hash: &str) -> Vec<(
                         OptionSerializer::Some(log_messages) => {
                             let mut v = None;
                             for log_message in &log_messages {
-                                if log_message.contains("Log truncated") {
+                                if log_message == "Log truncated" {
                                     println!(
                                         "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
                                         rpc_addr
