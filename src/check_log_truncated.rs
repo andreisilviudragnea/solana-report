@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use solana_client::client_error::reqwest::Identity;
+
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_config::RpcTransactionConfig;
 use solana_sdk::signature::Signature;
@@ -79,7 +79,7 @@ async fn check_log_truncated() -> Result<(), Box<dyn Error>> {
     let nodes_with_truncated_logs: Vec<(String, String)> = join_all(futures)
         .await
         .into_iter()
-        .filter_map(|x| x)
+        .flatten()
         .collect::<Vec<(String, String)>>();
     println!("Nodes with truncated logs: {nodes_with_truncated_logs:?}");
 
