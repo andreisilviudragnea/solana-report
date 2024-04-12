@@ -1,7 +1,9 @@
 use futures::future::join_all;
+use solana_client::client_error::reqwest::Identity;
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_client::rpc_config::RpcTransactionConfig;
 use solana_sdk::signature::Signature;
-use solana_transaction_status::UiTransactionEncoding;
+use solana_transaction_status::option_serializer::OptionSerializer;
 use std::error::Error;
 use std::str::FromStr;
 
@@ -28,33 +30,58 @@ async fn check_log_truncated() -> Result<(), Box<dyn Error>> {
 
             match rpc_client.get_health().await {
                 Ok(()) => {
-                    match rpc_client.get_transaction(
+                    match rpc_client.get_transaction_with_config(
                         &Signature::from_str("3WfjLkLWgAyiGXMG1ggCLbamYfV1eMyvTa7B9vxeRWkzV19QT2GxhtbKJHjYEz9u7QDKke4tjuRBZnjzNo4Cnqay").unwrap(),
-                        UiTransactionEncoding::JsonParsed
+                        RpcTransactionConfig {
+                            encoding: None,
+                            commitment: None,
+                            max_supported_transaction_version: Some(0),
+                        }
                     ).await {
                         Ok(response) => {
                             let log_messages = response.transaction.meta.unwrap().log_messages;
-                            println!(
-                                "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
-                                rpc_addr
-                            );
+                            match log_messages {
+                                OptionSerializer::Some(log_messages) => {
+                                    let mut v = None;
+                                    for log_message in &log_messages {
+                                        if log_message.contains("Log truncated") {
+                                            println!(
+                                                "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
+                                                rpc_addr
+                                            );
+                                            v = Some((pubkey, rpc_addr));
+                                            break;
+                                        }
+                                    }
+                                    v
+                                }
+                                OptionSerializer::None => None,
+                                OptionSerializer::Skip => None
+                            }
                         }
                         Err(err) => {
                             println!(
                                 "Node: {pubkey}, rpc_addr: {}, Log Messages Error: {err}",
                                 rpc_addr
                             );
+                            None
                         }
                     }
                 }
                 Err(e) => {
                     println!("Node: {pubkey}, rpc_addr: {}, Health Check: Error: {e}", rpc_addr);
+                    None
                 }
             }
         });
     }
 
-    let _ = join_all(futures).await.into_iter().min().unwrap();
+    let nodes_with_truncated_logs: Vec<(String, String)> = join_all(futures)
+        .await
+        .into_iter()
+        .filter_map(|x| x)
+        .collect::<Vec<(String, String)>>();
+    println!("Nodes with truncated logs: {nodes_with_truncated_logs:?}");
 
     Ok(())
 }
