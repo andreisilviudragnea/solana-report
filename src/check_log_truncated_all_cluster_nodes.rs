@@ -7,20 +7,22 @@ use solana_transaction_status::option_serializer::OptionSerializer;
 use std::str::FromStr;
 
 #[tokio::test]
-async fn test_check_log_truncated() {
-    let rpc_client = RpcClient::new("https://api.mainnet-beta.solana.com".to_string());
-    assert!(check_log_truncated(
-        &rpc_client,
+async fn test_check_log_truncated_all_cluster_nodes() {
+    assert!(check_log_truncated_all_cluster_nodes(
+        &RpcClient::new("https://api.mainnet-beta.solana.com".to_string()),
         "3WfjLkLWgAyiGXMG1ggCLbamYfV1eMyvTa7B9vxeRWkzV19QT2GxhtbKJHjYEz9u7QDKke4tjuRBZnjzNo4Cnqay"
     )
     .await
     .is_empty());
 }
 
-pub async fn check_log_truncated(rpc_client: &RpcClient, tx_hash: &str) -> Vec<(String, String)> {
+pub async fn check_log_truncated_all_cluster_nodes(
+    entrypoint: &RpcClient,
+    tx_hash: &str,
+) -> Vec<(String, String)> {
     let mut futures = Vec::new();
 
-    for node in rpc_client.get_cluster_nodes().await.unwrap().into_iter() {
+    for node in entrypoint.get_cluster_nodes().await.unwrap().into_iter() {
         let rpc_addr = if let Some(rpc_addr) = node.rpc {
             format!("http://{}", rpc_addr)
         } else if let Some(gossip) = node.gossip {

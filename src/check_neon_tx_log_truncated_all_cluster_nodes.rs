@@ -1,4 +1,4 @@
-use crate::check_log_truncated::check_log_truncated;
+use crate::check_log_truncated_all_cluster_nodes::check_log_truncated_all_cluster_nodes;
 use serde::Deserialize;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use std::sync::Arc;
@@ -19,7 +19,7 @@ struct Tx {
 }
 
 #[tokio::test]
-async fn check_neon_tx() -> Result<(), Box<dyn std::error::Error>> {
+async fn check_neon_tx_log_truncated_all_cluster_nodes() -> Result<(), Box<dyn std::error::Error>> {
     let web3 = Web3::new(Http::new("https://neon-proxy-mainnet.solana.p2p.org")?);
 
     // Fetch the current block number
@@ -44,7 +44,7 @@ async fn check_neon_tx() -> Result<(), Box<dyn std::error::Error>> {
         txs_with_truncated_logs_futures.push(async move {
             (
                 tx_hash.clone(),
-                check_log_truncated(&rpc_client, tx_hash).await,
+                check_log_truncated_all_cluster_nodes(&rpc_client, tx_hash).await,
             )
         });
     }
