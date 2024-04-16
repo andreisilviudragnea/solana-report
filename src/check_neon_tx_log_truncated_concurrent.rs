@@ -38,14 +38,14 @@ async fn check_neon_tx_log_truncated_concurrent() -> Result<(), Box<dyn std::err
 
     let node = rpc_contact_info_from_domain("api.mainnet-beta.solana.com").await;
 
-    let mut txs_with_truncated_logs_futures = Vec::new();
+    let mut txs_with_truncated_logs_check_futures = Vec::new();
 
     for tx in &receipt.solana_transactions {
         let tx_hash = &tx.solana_transaction_hash;
         let rpc_endpoint = rpc_endpoint.clone();
         let rpc_client = rpc_client.clone();
         let node = node.clone();
-        txs_with_truncated_logs_futures.push(async move {
+        txs_with_truncated_logs_check_futures.push(async move {
             (
                 tx_hash.clone(),
                 check_log_truncated(tx_hash, rpc_endpoint, rpc_client, node).await,
@@ -53,7 +53,13 @@ async fn check_neon_tx_log_truncated_concurrent() -> Result<(), Box<dyn std::err
         });
     }
 
-    let txs_with_truncated_logs = futures::future::join_all(txs_with_truncated_logs_futures).await;
+    let txs_with_truncated_logs_check =
+        futures::future::join_all(txs_with_truncated_logs_check_futures).await;
+
+    let txs_with_truncated_logs = txs_with_truncated_logs_check
+        .into_iter()
+        .filter(|v| v.1)
+        .collect::<Vec<_>>();
 
     println!("Txs with truncated logs: {:?}", txs_with_truncated_logs);
 

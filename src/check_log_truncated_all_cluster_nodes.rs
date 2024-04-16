@@ -21,8 +21,8 @@ async fn test_check_log_truncated_all_cluster_nodes() {
 pub async fn check_log_truncated_all_cluster_nodes(
     entrypoint: &RpcClient,
     tx_hash: &str,
-) -> Vec<(String, String)> {
-    let mut futures = Vec::new();
+) -> Vec<(String, bool)> {
+    let mut txs_with_truncated_logs_check_futures = Vec::new();
 
     for node in entrypoint.get_cluster_nodes().await.unwrap().into_iter() {
         let rpc_endpoint = match node.rpc_endpoint() {
@@ -32,18 +32,28 @@ pub async fn check_log_truncated_all_cluster_nodes(
 
         let rpc_client = Arc::new(RpcClient::new(rpc_endpoint.clone()));
 
-        futures.push(check_log_truncated(tx_hash, rpc_endpoint, rpc_client, node));
+        txs_with_truncated_logs_check_futures.push(async move {
+            (
+                tx_hash.to_string(),
+                check_log_truncated(tx_hash, rpc_endpoint, rpc_client, node).await,
+            )
+        });
     }
 
-    let nodes_with_truncated_logs: Vec<(String, String)> = join_all(futures)
-        .await
+    let txs_with_truncated_logs_check: Vec<(String, bool)> =
+        join_all(txs_with_truncated_logs_check_futures)
+            .await
+            .into_iter()
+            .collect();
+
+    let txs_with_truncated_logs = txs_with_truncated_logs_check
         .into_iter()
-        .flatten()
-        .collect::<Vec<(String, String)>>();
+        .filter(|v| v.1)
+        .collect::<Vec<_>>();
 
-    println!("Nodes with truncated logs: {nodes_with_truncated_logs:?}");
+    println!("Txs with truncated logs: {:?}", txs_with_truncated_logs);
 
-    nodes_with_truncated_logs
+    txs_with_truncated_logs
 }
 
 pub async fn check_log_truncated(
@@ -51,7 +61,7 @@ pub async fn check_log_truncated(
     rpc_endpoint: String,
     rpc_client: Arc<RpcClient>,
     node: RpcContactInfo,
-) -> Option<(String, String)> {
+) -> bool {
     let pubkey = node.pubkey.clone();
 
     match rpc_client
@@ -69,21 +79,19 @@ pub async fn check_log_truncated(
             let log_messages = response.transaction.meta.unwrap().log_messages;
             match log_messages {
                 OptionSerializer::Some(log_messages) => {
-                    let mut v = None;
                     for log_message in &log_messages {
                         if log_message == "Log truncated" {
                             println!(
                                 "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
                                 rpc_endpoint
                             );
-                            v = Some((pubkey, rpc_endpoint));
-                            break;
+                            return true;
                         }
                     }
-                    v
+                    false
                 }
-                OptionSerializer::None => None,
-                OptionSerializer::Skip => None,
+                OptionSerializer::None => false,
+                OptionSerializer::Skip => false,
             }
         }
         Err(err) => {
@@ -91,7 +99,7 @@ pub async fn check_log_truncated(
                 "Node: {pubkey}, rpc_addr: {}, Log Messages Error: {err}",
                 rpc_endpoint
             );
-            None
+            false
         }
     }
 }

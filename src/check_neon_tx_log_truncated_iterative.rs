@@ -26,6 +26,7 @@ async fn check_neon_tx_log_truncated_iterative() -> Result<(), Box<dyn std::erro
     let receipt: Receipt = CallFuture::new(web3.transport().execute(
         "neon_getTransactionReceipt",
         vec![
+            // serialize(&"0xc410f39dd20263f9631aaa748ad0c6b03da88a96749689620800d3ddb96bf351"),
             // serialize(&"0x905cbe45bb54390f9a40a9607940bce626afa9e758ca74c6673eaef1a7b7e97f"),
             serialize(&"0x294f306c846dcd086fb4cb63aa7012364f839f5d60a6e5db69ab70a33612f996"),
             "solanaTransactionList".into(),
@@ -39,29 +40,31 @@ async fn check_neon_tx_log_truncated_iterative() -> Result<(), Box<dyn std::erro
 
     let node = rpc_contact_info_from_domain("api.mainnet-beta.solana.com").await;
 
-    let mut txs_with_truncated_logs: Vec<(String, Option<(String, String)>)> = Vec::new();
+    let mut txs_with_truncated_logs_check: Vec<(String, bool)> = Vec::new();
 
-    let len = receipt.solana_transactions.len();
+    let len = receipt.solana_transactions.len() - 1;
     for (index, tx) in receipt.solana_transactions.into_iter().enumerate() {
         println!(
             "Checking tx {index}/{len}, found {} txs_with_truncated_logs",
-            txs_with_truncated_logs
-                .iter()
-                .filter_map(|v| v.1.clone())
-                .count()
+            txs_with_truncated_logs_check.iter().filter(|v| v.1).count()
         );
 
         let tx_hash = &tx.solana_transaction_hash;
         let rpc_endpoint = rpc_endpoint.clone();
         let rpc_client = rpc_client.clone();
         let node = node.clone();
-        txs_with_truncated_logs.push((
+        txs_with_truncated_logs_check.push((
             tx_hash.clone(),
             check_log_truncated(tx_hash, rpc_endpoint, rpc_client, node).await,
         ));
     }
 
-    println!("Txs with truncated logs: {:?}", txs_with_truncated_logs); // todo fix test
+    let txs_with_truncated_logs = txs_with_truncated_logs_check
+        .into_iter()
+        .filter(|v| v.1)
+        .collect::<Vec<_>>();
+
+    println!("Txs with truncated logs: {:?}", txs_with_truncated_logs);
 
     assert!(txs_with_truncated_logs.is_empty());
 
