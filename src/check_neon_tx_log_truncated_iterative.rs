@@ -42,7 +42,10 @@ async fn check_neon_tx_log_truncated_iterative() -> Result<(), Box<dyn std::erro
 
     let len = receipt.solana_transactions.len();
     for (index, tx) in receipt.solana_transactions.into_iter().enumerate() {
-        println!("Checking tx {index}/{len}");
+        println!(
+            "Checking tx {index}/{len}, found {} txs_with_truncated_logs",
+            txs_with_truncated_logs.len()
+        );
 
         let tx_hash = &tx.solana_transaction_hash;
         let rpc_endpoint = rpc_endpoint.clone();
