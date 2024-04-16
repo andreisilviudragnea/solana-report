@@ -6,6 +6,7 @@ use solana_client::rpc_response::RpcContactInfo;
 use solana_sdk::signature::Signature;
 use solana_transaction_status::option_serializer::OptionSerializer;
 use std::str::FromStr;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn test_check_log_truncated_all_cluster_nodes() {
@@ -24,7 +25,14 @@ pub async fn check_log_truncated_all_cluster_nodes(
     let mut futures = Vec::new();
 
     for node in entrypoint.get_cluster_nodes().await.unwrap().into_iter() {
-        futures.push(check_log_truncated(tx_hash, node));
+        let rpc_endpoint = match node.rpc_endpoint() {
+            None => continue,
+            Some(rpc_endpoint) => rpc_endpoint,
+        };
+
+        let rpc_client = Arc::new(RpcClient::new(rpc_endpoint.clone()));
+
+        futures.push(check_log_truncated(tx_hash, rpc_endpoint, rpc_client, node));
     }
 
     let nodes_with_truncated_logs: Vec<(String, String)> = join_all(futures)
@@ -38,11 +46,13 @@ pub async fn check_log_truncated_all_cluster_nodes(
     nodes_with_truncated_logs
 }
 
-pub async fn check_log_truncated(tx_hash: &str, node: RpcContactInfo) -> Option<(String, String)> {
-    let rpc_endpoint = node.rpc_endpoint()?;
-
-    let rpc_client = RpcClient::new(rpc_endpoint.clone());
-    let pubkey = node.pubkey;
+pub async fn check_log_truncated(
+    tx_hash: &str,
+    rpc_endpoint: String,
+    rpc_client: Arc<RpcClient>,
+    node: RpcContactInfo,
+) -> Option<(String, String)> {
+    let pubkey = node.pubkey.clone();
 
     match rpc_client
         .get_transaction_with_config(
@@ -94,6 +104,9 @@ impl RpcContantInfoExt for RpcContactInfo {
     fn rpc_endpoint(&self) -> Option<String> {
         if let Some(rpc_addr) = self.rpc {
             Some(format!("http://{}", rpc_addr))
-        } else { self.gossip.map(|gossip| format!("http://{}:8899", gossip.ip())) }
+        } else {
+            self.gossip
+                .map(|gossip| format!("http://{}:8899", gossip.ip()))
+        }
     }
 }

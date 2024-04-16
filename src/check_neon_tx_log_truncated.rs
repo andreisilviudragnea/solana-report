@@ -1,3 +1,5 @@
+use crate::check_log_truncated_all_cluster_nodes::check_log_truncated;
+use crate::rpc_contact_info_from_domain::rpc_contact_info_from_domain;
 use serde::Deserialize;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use std::sync::Arc;
@@ -31,28 +33,32 @@ async fn check_neon_tx_log_truncated() -> Result<(), Box<dyn std::error::Error>>
     ))
     .await?;
 
-    let rpc_client = Arc::new(RpcClient::new(
-        "https://api.mainnet-beta.solana.com".to_string(),
-    ));
+    let rpc_endpoint = "https://api.mainnet-beta.solana.com".to_string();
 
-    // let mut txs_with_truncated_logs_futures = Vec::new();
+    let rpc_client = Arc::new(RpcClient::new(rpc_endpoint.clone()));
 
-    // for tx in &receipt.solana_transactions {
-    //     let tx_hash = &tx.solana_transaction_hash;
-    //     let rpc_client = rpc_client.clone();
-    //     txs_with_truncated_logs_futures.push(async move {
-    //         (
-    //             tx_hash.clone(),
-    //             check_log_truncated(tx_hash, ).await,
-    //         )
-    //     });
-    // }
-    //
-    // let txs_with_truncated_logs = futures::future::join_all(txs_with_truncated_logs_futures).await;
-    //
-    // println!("Txs with truncated logs: {:?}", txs_with_truncated_logs);
-    //
-    // assert!(txs_with_truncated_logs.is_empty());
+    let node = rpc_contact_info_from_domain("api.mainnet-beta.solana.com").await;
+
+    let mut txs_with_truncated_logs_futures = Vec::new();
+
+    for tx in &receipt.solana_transactions {
+        let tx_hash = &tx.solana_transaction_hash;
+        let rpc_endpoint = rpc_endpoint.clone();
+        let rpc_client = rpc_client.clone();
+        let node = node.clone();
+        txs_with_truncated_logs_futures.push(async move {
+            (
+                tx_hash.clone(),
+                check_log_truncated(tx_hash, rpc_endpoint, rpc_client, node).await,
+            )
+        });
+    }
+
+    let txs_with_truncated_logs = futures::future::join_all(txs_with_truncated_logs_futures).await;
+
+    println!("Txs with truncated logs: {:?}", txs_with_truncated_logs);
+
+    assert!(txs_with_truncated_logs.is_empty());
 
     Ok(())
 }
