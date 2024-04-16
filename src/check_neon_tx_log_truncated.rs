@@ -23,7 +23,6 @@ struct Tx {
 async fn check_neon_tx_log_truncated() -> Result<(), Box<dyn std::error::Error>> {
     let web3 = Web3::new(Http::new("https://neon-proxy-mainnet.solana.p2p.org")?);
 
-    // Fetch the current block number
     let receipt: Receipt = CallFuture::new(web3.transport().execute(
         "neon_getTransactionReceipt",
         vec![
