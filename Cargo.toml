@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 tokio = "1.37.0"
-solana-client = "1.17.30"
-solana-sdk = "1.17.30"
+solana-client = "1.17.31"
+solana-sdk = "1.17.31"
 futures = "0.3.30"
-solana-transaction-status = "1.17.30"
+solana-transaction-status = "1.17.31"
 web3 = "0.19.0"
 serde_json = "1.0.115"
 serde = { version = "1.0.197", features = ["derive"] }
