@@ -82,8 +82,7 @@ pub async fn check_log_truncated(
                     for log_message in &log_messages {
                         if log_message == "Log truncated" {
                             println!(
-                                "Node: {pubkey}, rpc_addr: {}, Log Messages: {log_messages:?}",
-                                rpc_endpoint
+                                "tx_hash={tx_hash}, pubkey={pubkey}, rpc_endpoint={rpc_endpoint}, log_messages={log_messages:?}"
                             );
                             return true;
                         }
@@ -96,8 +95,7 @@ pub async fn check_log_truncated(
         }
         Err(err) => {
             println!(
-                "Node: {pubkey}, rpc_addr: {}, Log Messages Error: {err}",
-                rpc_endpoint
+                "tx_hash={tx_hash}, pubkey={pubkey}, rpc_endpoint={rpc_endpoint}, get_transaction_with_config_error={err}",
             );
             false
         }
