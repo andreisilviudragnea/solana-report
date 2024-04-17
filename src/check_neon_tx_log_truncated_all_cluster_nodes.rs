@@ -19,8 +19,8 @@ struct Tx {
 }
 
 #[tokio::test]
-async fn check_neon_tx_log_truncated_all_cluster_nodes() -> Result<(), Box<dyn std::error::Error>> {
-    let web3 = Web3::new(Http::new("https://neon-proxy-mainnet.solana.p2p.org")?);
+async fn check_neon_tx_log_truncated_all_cluster_nodes() {
+    let web3 = Web3::new(Http::new("https://neon-proxy-mainnet.solana.p2p.org").unwrap());
 
     let receipt: Receipt = CallFuture::new(web3.transport().execute(
         "neon_getTransactionReceipt",
@@ -29,7 +29,8 @@ async fn check_neon_tx_log_truncated_all_cluster_nodes() -> Result<(), Box<dyn s
             "solanaTransactionList".into(),
         ],
     ))
-    .await?;
+    .await
+    .unwrap();
 
     let rpc_client = Arc::new(RpcClient::new(
         "https://api.mainnet-beta.solana.com".to_string(),
@@ -53,6 +54,4 @@ async fn check_neon_tx_log_truncated_all_cluster_nodes() -> Result<(), Box<dyn s
     println!("Txs with truncated logs: {:?}", txs_with_truncated_logs);
 
     assert!(txs_with_truncated_logs.is_empty());
-
-    Ok(())
 }

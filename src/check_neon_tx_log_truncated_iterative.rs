@@ -20,19 +20,21 @@ struct Tx {
 }
 
 #[tokio::test]
-async fn check_neon_tx_log_truncated_iterative() -> Result<(), Box<dyn std::error::Error>> {
-    let web3 = Web3::new(Http::new("https://neon-proxy-mainnet.solana.p2p.org")?);
+async fn check_neon_tx_log_truncated_iterative() {
+    let web3 = Web3::new(Http::new("https://neon-proxy-mainnet.solana.p2p.org").unwrap());
 
     let receipt: Receipt = CallFuture::new(web3.transport().execute(
         "neon_getTransactionReceipt",
         vec![
             // serialize(&"0xc410f39dd20263f9631aaa748ad0c6b03da88a96749689620800d3ddb96bf351"),
             // serialize(&"0x905cbe45bb54390f9a40a9607940bce626afa9e758ca74c6673eaef1a7b7e97f"),
-            serialize(&"0x294f306c846dcd086fb4cb63aa7012364f839f5d60a6e5db69ab70a33612f996"),
+            // serialize(&"0x294f306c846dcd086fb4cb63aa7012364f839f5d60a6e5db69ab70a33612f996"),
+            serialize(&"0x90ba5ccb669714ab8480c88c1620e8c85447e5cf2b47763a216f74505a27ad18"),
             "solanaTransactionList".into(),
         ],
     ))
-    .await?;
+    .await
+    .unwrap();
 
     let rpc_endpoint = "https://api.mainnet-beta.solana.com".to_string();
 
@@ -67,6 +69,4 @@ async fn check_neon_tx_log_truncated_iterative() -> Result<(), Box<dyn std::erro
     println!("Txs with truncated logs: {:?}", txs_with_truncated_logs);
 
     assert!(txs_with_truncated_logs.is_empty());
-
-    Ok(())
 }
